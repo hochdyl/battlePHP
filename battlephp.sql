@@ -3,7 +3,7 @@
 -- https://www.phpmyadmin.net/
 --
 -- Hôte : 127.0.0.1:3306
--- Généré le :  Dim 10 mai 2020 à 15:30
+-- Généré le :  Dim 10 mai 2020 à 15:36
 -- Version du serveur :  10.4.10-MariaDB
 -- Version de PHP :  7.3.12
 
@@ -21,7 +21,8 @@ SET time_zone = "+00:00";
 --
 -- Base de données :  `battlephp`
 --
-CREATE TABLE IF NOT EXISTS `battlephp` 
+CREATE DATABASE IF NOT EXISTS `battlephp` DEFAULT CHARACTER SET utf8 COLLATE utf8_general_ci;
+USE `battlephp`;
 
 -- --------------------------------------------------------
 
