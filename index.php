@@ -57,9 +57,9 @@
     loadClass('Character');
 
     // Data Source Name (DSN)
-    $dsn = 'mysql:dbname=hochxwyp_battlePHP;host=localhost';
-    $user = 'hochxwyp_battlePHP';
-    $password = 'dBARzylh=qPYTIalAA';
+    $dsn = 'mysql:dbname=battlephp;host=localhost';
+    $user = 'root';
+    $password = '';
 
     try {
         $db = new PDO($dsn, $user, $password);
@@ -204,7 +204,7 @@
                         ";
                         break;
 
-                    case "Déconnexion": // Evite l'erreur post non trouvé
+                    case "Déconnexion": // Sur déconnexion
                         echo "
                         <div class='alert alert-success alert-dismissible fade show' role='alert'>
                             <button type='button' class='close' data-dismiss='alert' aria-label='Close'>
@@ -229,7 +229,7 @@
                     $myChar = unserialize($_SESSION['Character']); // Notre personnage
                 }
             
-                // CONNECTER AFFICHAGE CLASSIQUE
+                // AFFICHAGE DES INFORMATION QUAND ON EST CONNECTÉ
 
                 $currentCharId = $myChar->getId();
                 $currentCharName = $myChar->getName();
@@ -240,7 +240,7 @@
                 $currentCharAvatar = $myChar->getAvatar();
 
 
-                // PANNEAU PERSONNAGE
+                // PANNEAU DE NOTRE PERSONNAGE
                 echo "
                 <div class='bg-own p-3 my-3 own-pannel round'>
                     <div class='row char-row'>
@@ -320,8 +320,9 @@
                 }
 
             } else {
+                // AFFICHAGE DES INFORMATION QUAND ON EST DECONNECTÉ
         
-                // Créer un perso
+                // PANNEAU CREATION PERSONNAGE
                 echo "
                 <div class='bg-own p-3 my-3 own-pannel round'>
                     <form action='index.php' method='post'>
@@ -337,7 +338,7 @@
                 </div>
                 ";
 
-                // Utiliser un perso
+                // PANNEAU DES PERSONNAGES EXISTANTS
                 $charList = $manager->getList();
 
                 if ($charList) {
