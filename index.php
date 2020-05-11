@@ -31,16 +31,14 @@
             <div class="navbar-brand">BattlePHP</div>
             <ul class="navbar-nav mr-auto"></ul>
             <?php
-            if (!empty($_SESSION['Character'])) { // CONNECTER
-                if (!empty($_POST)) {
-                    if ($_POST['action'] == "Déconnexion") {
-                        session_unset();
-                        session_destroy();
-                        header("refresh:0; index.php");
-                    }
-                }
+
+            if (!empty($_POST['action']) && $_POST['action'] == "Déconnexion") { // CONNECTER
+                session_unset();
+                session_destroy();
+            }
+            if (!empty($_SESSION['Character']) || $_POST['action'] == "Utiliser" || $_POST['action'] == "Créer") {
                 echo "
-                <form action='' method='post'>
+                <form action='index.php' method='post'>
                     <input class='navbar-brand sign-out-btn' type='submit' value='Déconnexion' name='action' />
                 </form>";
             }
@@ -59,9 +57,9 @@
     loadClass('Character');
 
     // Data Source Name (DSN)
-    $dsn = 'mysql:dbname=battlephp;host=127.0.0.1';
-    $user = 'root';
-    $password = '';
+    $dsn = 'mysql:dbname=hochxwyp_battlePHP;host=localhost';
+    $user = 'hochxwyp_battlePHP';
+    $password = 'dBARzylh=qPYTIalAA';
 
     try {
         $db = new PDO($dsn, $user, $password);
@@ -77,351 +75,317 @@
 
             $manager = new CharactersManager($db);
 
-            if (!empty($_SESSION['Character'])) { // CONNECTER
-
+            if (!empty($_SESSION['Character'])) {
                 $myChar = unserialize($_SESSION['Character']); // Notre personnage
-            
-                if (!empty($_GET)) { // CONNECTER ET ACTION
+            }
 
-                    $notif = $_GET['notif'];
+            if (!empty($_POST['action'])) { // SI UNE ACTION
 
-                    switch ($notif) {
-                        case "create": // Sur attaque
-                            $notifCharName = $_GET['name'];
-                            echo "
-                            <div class='alert alert-success alert-dismissible fade show' role='alert'>
-                                <button type='button' class='close' data-dismiss='alert' aria-label='Close'>
-                                <span aria-hidden='true'>&times;</span>
-                                </button>
-                                Votre personnage <label class='font-weight-bold'>".$notifCharName."</label> à été créer ! 
-                            </div>
-                            ";
-                            break;
+                $action = $_POST['action'];
 
-                        case "use": // Sur attaque
-                            $notifCharName = $_GET['name'];
-                            echo "
-                            <div class='alert alert-success alert-dismissible fade show' role='alert'>
-                                <button type='button' class='close' data-dismiss='alert' aria-label='Close'>
-                                <span aria-hidden='true'>&times;</span>
-                                </button>
-                                Vous êtes connecter avec <label class='font-weight-bold'>".$notifCharName."</label> ! 
-                            </div>
-                            ";
-                            break;
+                switch ($action) {
+                    case "Attaquer": // Sur attaque
+                        $idChar = intval($_POST['id']);
+                        $selectedChar = $manager->getOne($idChar);
+                        $theAttack = $myChar->attack($selectedChar);
 
-                        case "kill": // Sur attaque
-                            $notifCharName = $_GET['name'];
-                            echo "
-                            <div class='alert alert-danger alert-dismissible fade show' role='alert'>
-                                <button type='button' class='close' data-dismiss='alert' aria-label='Close'>
-                                <span aria-hidden='true'>&times;</span>
-                                </button>
-                                Vous avez tué <label class='font-weight-bold'>".$notifCharName."</label> ! 
-                            </div>
-                            ";
-                            break;
+                        switch ($theAttack) { // RESULTAT DE L'ATTAQUE
+                            case Character::CHAR_ATTACKED: // PREND DES DEGATS
+                                $manager->update($selectedChar, 'Attack');
+                                break;
 
-                        case "kill-lvl": // Sur attaque
-                            $notifCharName = $_GET['name'];
-                            $notifCharLevel = $_GET['lvl'];
-                            $notifPrevCharLevel = intval($notifCharLevel)-1;
-                            echo "
-                            <div class='alert alert-danger alert-dismissible fade show' role='alert'>
-                                <button type='button' class='close' data-dismiss='alert' aria-label='Close'>
-                                <span aria-hidden='true'>&times;</span>
-                                </button>
-                                Vous avez tué <label class='font-weight-bold'>".$notifCharName."</label> ! 
-                            </div>
-
-                            <div class='alert alert-success alert-dismissible fade show' role='alert'>
-                                <button type='button' class='close' data-dismiss='alert' aria-label='Close'>
-                                <span aria-hidden='true'>&times;</span>
-                                </button>
-                                Vous avez gagner un niveau ! <label class='font-weight-bold'>(".$notifPrevCharLevel.">".$notifCharLevel.")</label> 
-                            </div>
-                            ";
-                            break;
-
-                        case "heal": // Sur attaque
-                            $notifCharName = $_GET['name'];
-                            echo "
-                            <div class='alert alert-success alert-dismissible fade show' role='alert'>
-                                <button type='button' class='close' data-dismiss='alert' aria-label='Close'>
-                                <span aria-hidden='true'>&times;</span>
-                                </button>
-                                Vous avez soigner <label class='font-weight-bold'>".$notifCharName."</label> ! 
-                            </div>
-                            ";
-                            break;
-
-                        default :
-                        echo "
-                        <div class='text-center error-label py-2 px-5 round'>Erreur dans l'action (Prendre des dégâts ou mourrir)</div>
-                        ";
-                    }
-                }
-
-                if (!empty($_POST)) { // CONNECTER ET ACTION
-
-                    $action = $_POST['action'];
-
-                    switch ($action) {
-                        case "Attaquer": // Sur attaque
-                            $idChar = intval($_POST['id']);
-                            $selectedChar = $manager->getOne($idChar);
-                            $theAttack = $myChar->attack($selectedChar);
-
-                            switch ($theAttack) { // RESULTAT DE L'ATTAQUE
-                                case Character::CHAR_ATTACKED: // PREND DES DEGATS
-                                    $manager->update($selectedChar, 'Attack');
-                                    header("refresh:0; index.php");
-                                    break;
-
-                                case Character::CHAR_KILLED: // EST TUÉ
-                                    $theKill = $myChar->gainExperience();
-
-                                    switch ($theKill) { // RESULTAT DU KILL
-                                        case Character::CHAR_LVL_UP: // ON GAGNE UN NIVEAU
-                                            $manager->update($myChar, 'Level');
-                                            $manager->update($myChar, 'Heal');
-                                            break;
-
-                                        case Character::CHAR_EXP_UP: // ON GAGNE DE L'XP
-                                            $manager->update($myChar, 'Experience');
-                                            break;
-
-                                        default :
-                                        echo "
-                                        <div class='text-center error-label py-2 px-5 round'>Erreur dans l'action (Gagner de l'xp ou un niveau)</div>
-                                        ";
-                                    }
-                                    $_SESSION['Character'] = serialize($myChar);
-                                    $charName = $selectedChar->getName();
-                                    $myCharLvl = $myChar->getLevel();
-
-                                    $manager->delete($selectedChar);
-                                    $url = "refresh:0; index.php?notif=kill&name=".$charName;
-                                    if ($theKill == Character::CHAR_LVL_UP) {
-                                        $url = "refresh:0; index.php?notif=kill-lvl&name=".$charName."&lvl=".$myCharLvl;
-                                    }
-                                    header($url, TRUE, 307);
-                                    break;
-
-                                case Character::MYSELF: // S'ATTAQUE TOUT SEUL (Erreur)
-                                    header("refresh:0; index.php");
-                                    break;
-
-                                default :
+                            case Character::CHAR_KILLED: // EST TUÉ
+                                $theKill = $myChar->gainExperience();
                                 echo "
-                                <div class='text-center error-label py-2 px-5 round'>Erreur dans l'action (Prendre des dégâts ou mourrir)</div>
+                                <div class='alert alert-danger alert-dismissible fade show' role='alert'>
+                                    <button type='button' class='close' data-dismiss='alert' aria-label='Close'>
+                                    <span aria-hidden='true'>&times;</span>
+                                    </button>
+                                    Vous avez tué <label class='font-weight-bold'>".$selectedChar->getName()."</label>
+                                </div>
                                 ";
-                            }
-                            break;
 
-                        case "Soigner": // Sur soins
-                            $idChar = intval($_POST['id']);
-                            $selectedChar = $manager->getOne($idChar);
-                            $charName = $selectedChar->getName();
-                            $manager->update($selectedChar, 'Heal');
-                            header("refresh:0; index.php?notif=heal&name=".$charName, TRUE, 307);
-                            break;
+                                switch ($theKill) { // RESULTAT DU KILL
+                                    case Character::CHAR_LVL_UP: // ON GAGNE UN NIVEAU
+                                        $level = $myChar->getLevel();
+                                        $prevLevel = $level-1;
+                                        echo "
+                                        <div class='alert alert-warning alert-dismissible fade show' role='alert'>
+                                            <button type='button' class='close' data-dismiss='alert' aria-label='Close'>
+                                            <span aria-hidden='true'>&times;</span>
+                                            </button>
+                                            Vous avez gagner un niveau <label class='font-weight-bold'>(".$prevLevel.">".$level.")</label> 
+                                        </div>
+                                        ";
+                                        $manager->update($myChar, 'Level');
+                                        $manager->update($myChar, 'Heal');
+                                        break;
 
-                        default :
+                                    case Character::CHAR_EXP_UP: // ON GAGNE DE L'XP
+                                        echo "
+                                        <div class='alert alert-warning alert-dismissible fade show' role='alert'>
+                                            <button type='button' class='close' data-dismiss='alert' aria-label='Close'>
+                                            <span aria-hidden='true'>&times;</span>
+                                            </button>
+                                            Vous avez gagner <label class='font-weight-bold'>20</label> experiences
+                                        </div>
+                                        ";
+                                        $manager->update($myChar, 'Experience');
+                                        break;
+
+                                    default :
+                                    echo "
+                                    <div class='text-center error-label py-2 px-5 round'>Erreur dans l'action (Gagner de l'xp ou un niveau)</div>
+                                    ";
+                                }
+                                $_SESSION['Character'] = serialize($myChar);
+                                $charName = $selectedChar->getName();
+                                $myCharLvl = $myChar->getLevel();
+
+                                $manager->delete($selectedChar);
+                                break;
+
+                            case Character::MYSELF: // S'ATTAQUE TOUT SEUL (Erreur)
+                                break;
+
+                            default :
                             echo "
-                            <div class='text-center error-label py-2 px-5 round'>Erreur dans l'action (Attaquer ou soigner)</div>
+                            <div class='text-center error-label py-2 px-5 round'>Erreur dans l'action (Prendre des dégâts ou mourrir)</div>
                             ";
-                    }
-                } else { // CONNECTER ET PAS D'ACTIONS
+                        }
+                        break;
 
-                    $currentCharId = $myChar->getId();
-                    $currentCharName = $myChar->getName();
-                    $currentCharLife = $myChar->getLife();
-                    $currentCharStrength = $myChar->getStrength();
-                    $currentCharLevel = $myChar->getLevel();
-                    $currentCharExperience = $myChar->getExperience();
-                    $currentCharAvatar = $myChar->getAvatar();
+                    case "Soigner": // Sur soins
+                        $idChar = intval($_POST['id']);
+                        $selectedChar = $manager->getOne($idChar);
+                        $charName = $selectedChar->getName();
+                        $manager->update($selectedChar, 'Heal');
+                        echo "
+                        <div class='alert alert-success alert-dismissible fade show' role='alert'>
+                            <button type='button' class='close' data-dismiss='alert' aria-label='Close'>
+                            <span aria-hidden='true'>&times;</span>
+                            </button>
+                            Vous avez soigner <label class='font-weight-bold'>".$charName."</label> 
+                        </div>
+                        ";
+                        break;
+
+                    case "Creer": // Sur création de personnage
+                        $newCharName = $_POST['name'];
+
+                        $newChar = new Character(array(
+                            'name' => $newCharName,
+                            'avatar' => rand(1, 55)
+                        ));
+                        $manager->add($newChar);
+                        $_SESSION['Character'] = serialize($newChar);
+                        echo "
+                        <div class='alert alert-success alert-dismissible fade show' role='alert'>
+                            <button type='button' class='close' data-dismiss='alert' aria-label='Close'>
+                            <span aria-hidden='true'>&times;</span>
+                            </button>
+                            Création de <label class='font-weight-bold'>".$newCharName."</label>
+                        </div>
+                        ";
+                        break;
+
+                    case "Utiliser": // Sur utilisation de personnage
+                        $charId = intval($_POST['id']);
+                        $char = $manager->getOne($charId);
+                        $charName = $char->getName();
+                        $_SESSION['Character'] = serialize($char);
+                        echo "
+                        <div class='alert alert-success alert-dismissible fade show' role='alert'>
+                            <button type='button' class='close' data-dismiss='alert' aria-label='Close'>
+                            <span aria-hidden='true'>&times;</span>
+                            </button>
+                            Connexion avec <label class='font-weight-bold'>".$charName."</label>
+                        </div>
+                        ";
+                        break;
+
+                    case "Déconnexion": // Evite l'erreur post non trouvé
+                        echo "
+                        <div class='alert alert-success alert-dismissible fade show' role='alert'>
+                            <button type='button' class='close' data-dismiss='alert' aria-label='Close'>
+                            <span aria-hidden='true'>&times;</span>
+                            </button>
+                            Déconnecté
+                        </div>
+                        ";
+                        break;
+
+                    default :
+                        echo "
+                        <div class='text-center error-label py-2 px-5 round'>Erreur une action</div>
+                        ";
+                }
+            }   
 
 
-                    // PANNEAU PERSONNAGE
-                    echo "
-                    <div class='bg-own p-3 my-3 own-pannel round'>
-                        <div class='row char-row'>
-                            <div class='col-md-auto'>
-                                <div class='avatar-box' style='background-image: url("."./images/avatars/avatar-".$currentCharAvatar.".png".")'></div>
-                            </div>
-                            <div class='col d-flex'>
-                                <div class='d-flex flex-column'>
-                                    <div class='char-name'>".$currentCharName."</div>
-                                    <div class='char-infos'>
-                                        <div class='char-infos-box'><label>".$currentCharLife."</label></div>
-                                        <div class='char-infos-box'><label>".$currentCharStrength."</label></div>
-                                        <div class='char-infos-box'><label>".$currentCharLevel."</label></div>
-                                        <div class='char-infos-box'><label>".$currentCharExperience."</label></div>
-                                    </div>
+            if (!empty($_SESSION['Character'])) {
+
+                if (!empty($_SESSION['Character'])) {
+                    $myChar = unserialize($_SESSION['Character']); // Notre personnage
+                }
+            
+                // CONNECTER AFFICHAGE CLASSIQUE
+
+                $currentCharId = $myChar->getId();
+                $currentCharName = $myChar->getName();
+                $currentCharLife = $myChar->getLife();
+                $currentCharStrength = $myChar->getStrength();
+                $currentCharLevel = $myChar->getLevel();
+                $currentCharExperience = $myChar->getExperience();
+                $currentCharAvatar = $myChar->getAvatar();
+
+
+                // PANNEAU PERSONNAGE
+                echo "
+                <div class='bg-own p-3 my-3 own-pannel round'>
+                    <div class='row char-row'>
+                        <div class='col-md-auto'>
+                            <div class='avatar-box' style='background-image: url("."./images/avatars/avatar-".$currentCharAvatar.".png".")'></div>
+                        </div>
+                        <div class='col d-flex'>
+                            <div class='d-flex flex-column'>
+                                <div class='char-name'>".$currentCharName."</div>
+                                <div class='char-infos'>
+                                    <div class='char-infos-box'><label>".$currentCharLife."</label></div>
+                                    <div class='char-infos-box'><label>".$currentCharStrength."</label></div>
+                                    <div class='char-infos-box'><label>".$currentCharLevel."</label></div>
+                                    <div class='char-infos-box'><label>".$currentCharExperience."</label></div>
                                 </div>
                             </div>
                         </div>
                     </div>
-                    ";
+                </div>
+                ";
 
 
-                    // PANNEAU ADVERSAIRES
-                    $charList = $manager->getListWithoutOne($currentCharId);
+                // PANNEAU ADVERSAIRES
+                $charList = $manager->getListWithoutOne($currentCharId);
 
-                    if ($charList) {
+                if ($charList) {
 
-                        echo "<div class='px-3 char-pannel'>";
-                        foreach ($charList as $char) {
+                    echo "<div class='px-3 char-pannel'>";
+                    foreach ($charList as $char) {
 
-                            $charId = $char->getId();
-                            $charName = $char->getName();
-                            $charLife = $char->getLife();
-                            $charStrength = $char->getStrength();
-                            $charLevel = $char->getLevel();
-                            $charExperience = $char->getExperience();
-                            $charAvatar = $char->getAvatar();
+                        $charId = $char->getId();
+                        $charName = $char->getName();
+                        $charLife = $char->getLife();
+                        $charStrength = $char->getStrength();
+                        $charLevel = $char->getLevel();
+                        $charExperience = $char->getExperience();
+                        $charAvatar = $char->getAvatar();
 
 
-                            echo "
-                            <div class='row char-row py-3 bg-classic'>
-                                <div class='col-md-auto'>
-                                    <div class='avatar-box' style='background-image: url("."./images/avatars/avatar-".$charAvatar.".png".")'></div>
-                                </div>
-                                <div class='col d-flex'>
-                                    <div class='d-flex flex-column'>
-                                        <div class='char-name'>".$charName."</div>
-                                        <div class='char-infos'>
-                                            <div class='char-infos-box'><label>".$charLife."</label></div>
-                                            <div class='char-infos-box'><label>".$charStrength."</label></div>
-                                            <div class='char-infos-box'><label>".$charLevel."</label></div>
-                                            <div class='char-infos-box'><label>".$charExperience."</label></div>
-                                        </div>
-                                    </div>
-                                </div>
-                                <form action='' method='post'>
-                                    <div class='col-md-auto d-flex justify-content-center'>
-                                        <input type='hidden' value='".$charId."' name='id'>
-                                        <input type='submit' value='Attaquer' class='attack-btn round' name='action'/>
-                                    </div>
-                                </form>
-                                <form action='' method='post'>
-                                    <div class='col-md-auto d-flex justify-content-center'>
-                                        <input type='hidden' value='".$charId."' name='id'>
-                                        <input type='submit' value='Soigner' class='use-btn round' name='action'/>
-                                    </div>
-                                </form>
-                            </div>
-                            ";
-                        }
-                        echo "</div>";
-
-                    } else { // Si il n'y a pas encore d'adversaires
                         echo "
-                        <div class='text-center error-label py-2 px-5 round'>Aucun adversaire</div>
+                        <div class='row char-row py-3 bg-classic'>
+                            <div class='col-md-auto'>
+                                <div class='avatar-box' style='background-image: url("."./images/avatars/avatar-".$charAvatar.".png".")'></div>
+                            </div>
+                            <div class='col d-flex'>
+                                <div class='d-flex flex-column'>
+                                    <div class='char-name'>".$charName."</div>
+                                    <div class='char-infos'>
+                                        <div class='char-infos-box'><label>".$charLife."</label></div>
+                                        <div class='char-infos-box'><label>".$charStrength."</label></div>
+                                        <div class='char-infos-box'><label>".$charLevel."</label></div>
+                                        <div class='char-infos-box'><label>".$charExperience."</label></div>
+                                    </div>
+                                </div>
+                            </div>
+                            <form action='index.php' method='post'>
+                                <div class='col-md-auto d-flex justify-content-center'>
+                                    <input type='hidden' value='".$charId."' name='id'>
+                                    <input type='submit' value='Attaquer' class='attack-btn round' name='action'/>
+                                </div>
+                            </form>
+                            <form action='index.php' method='post'>
+                                <div class='col-md-auto d-flex justify-content-center'>
+                                    <input type='hidden' value='".$charId."' name='id'>
+                                    <input type='submit' value='Soigner' class='use-btn round' name='action'/>
+                                </div>
+                            </form>
+                        </div>
                         ";
                     }
-                }
+                    echo "</div>";
 
-            } else { // DECONNECTER
-                if (!empty($_POST)) { // DECONNECTER ET ACTION
-
-                    $action = $_POST['action'];
-
-                    switch ($action) {
-                        case "Creer": // Sur création de personnage
-                            $newCharName = $_POST['name'];
-
-                            $newChar = new Character(array(
-                                'name' => $newCharName,
-                                'avatar' => rand(1, 55)
-                            ));
-                            $manager->add($newChar);
-                            $_SESSION['Character'] = serialize($newChar);
-
-                            header("refresh:0; index.php?notif=create&name=".$newCharName, TRUE, 307);
-                            break;
-
-                        case "Utiliser": // Sur utilisation de personnage
-                            $charId = intval($_POST['id']);
-                            $char = $manager->getOne($charId);
-                            $charName = $char->getName();
-                            $_SESSION['Character'] = serialize($char);
-
-                            header("refresh:0; index.php?notif=use&name=".$charName, TRUE, 307);
-                            break;
-
-                        default :
-                            echo "
-                            <div class='text-center error-label py-2 px-5 round'>Erreur dans l'action (Creer ou utiliser)</div>
-                            ";
-                    }
-                } else { // DECONNECTER ET PAS D'ACTIONS
-
-                    // Créer un perso
+                } else { // Si il n'y a pas encore d'adversaires
                     echo "
-                    <div class='bg-own p-3 my-3 own-pannel round'>
-                        <form action='' method='post'>
-                            <div class='row'>
-                                <div class='col d-flex justify-content-center'>
-                                    <input type='text' placeholder='Nom du personnage à créer' class='create-input' name='name' maxlength='30' required/>
-                                </div>
-                                <div class='col-md-auto d-flex justify-content-center create-btn-container'>
-                                    <button type='submit' value='Creer' class='create-btn' name='action'>+</button>
-                                </div>
-                            </div>
-                        </form>
-                    </div>
+                    <div class='text-center error-label py-2 px-5 round'>Aucun adversaire</div>
                     ";
+                }
 
-                    // Utiliser un perso
-                    $charList = $manager->getList();
-
-                    if ($charList) {
-
-                        echo "<div class='px-3 char-pannel'>";
-                        foreach ($charList as $char) {
-
-                            $charId = $char->getId();
-                            $charName = $char->getName();
-                            $charLife = $char->getLife();
-                            $charStrength = $char->getStrength();
-                            $charLevel = $char->getLevel();
-                            $charExperience = $char->getExperience();
-                            $charAvatar = $char->getAvatar();
-
-                            echo "
-                            <div class='row char-row py-3 bg-classic'>
-                                <div class='col-md-auto'>
-                                    <div class='avatar-box' style='background-image: url("."./images/avatars/avatar-".$charAvatar.".png".")'></div>
-                                </div>
-                                <div class='col d-flex'>
-                                    <div class='d-flex flex-column'>
-                                        <div class='char-name'>".$charName."</div>
-                                        <div class='char-infos'>
-                                            <div class='char-infos-box'><label>".$charLife."</label></div>
-                                            <div class='char-infos-box'><label>".$charStrength."</label></div>
-                                            <div class='char-infos-box'><label>".$charLevel."</label></div>
-                                            <div class='char-infos-box'><label>".$charExperience."</label></div>
-                                        </div>
-                                    </div>
-                                </div>
-                                <form action='' method='post'>
-                                    <div class='col-md-auto d-flex justify-content-center'>
-                                        <input type='hidden' value='".$charId."' name='id'>
-                                        <input type='submit' value='Utiliser' class='use-btn round' name='action'/>
-                                    </div>
-                                </form>
+            } else {
+        
+                // Créer un perso
+                echo "
+                <div class='bg-own p-3 my-3 own-pannel round'>
+                    <form action='index.php' method='post'>
+                        <div class='row'>
+                            <div class='col d-flex justify-content-center'>
+                                <input type='text' placeholder='Nom du personnage à créer' class='create-input' name='name' maxlength='30' required/>
                             </div>
-                            ";
-                        }
-                        echo "</div>";
-                    } else { // Si il n'y a pas encore d'adversaires
+                            <div class='col-md-auto d-flex justify-content-center create-btn-container'>
+                                <button type='submit' value='Creer' class='create-btn' name='action'>+</button>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+                ";
+
+                // Utiliser un perso
+                $charList = $manager->getList();
+
+                if ($charList) {
+
+                    echo "<div class='px-3 char-pannel'>";
+                    foreach ($charList as $char) {
+
+                        $charId = $char->getId();
+                        $charName = $char->getName();
+                        $charLife = $char->getLife();
+                        $charStrength = $char->getStrength();
+                        $charLevel = $char->getLevel();
+                        $charExperience = $char->getExperience();
+                        $charAvatar = $char->getAvatar();
+
                         echo "
-                        <div class='text-center error-label py-2 px-5 round'>Aucun adversaire</div>
+                        <div class='row char-row py-3 bg-classic'>
+                            <div class='col-md-auto'>
+                                <div class='avatar-box' style='background-image: url("."./images/avatars/avatar-".$charAvatar.".png".")'></div>
+                            </div>
+                            <div class='col d-flex'>
+                                <div class='d-flex flex-column'>
+                                    <div class='char-name'>".$charName."</div>
+                                    <div class='char-infos'>
+                                        <div class='char-infos-box'><label>".$charLife."</label></div>
+                                        <div class='char-infos-box'><label>".$charStrength."</label></div>
+                                        <div class='char-infos-box'><label>".$charLevel."</label></div>
+                                        <div class='char-infos-box'><label>".$charExperience."</label></div>
+                                    </div>
+                                </div>
+                            </div>
+                            <form action='index.php' method='post'>
+                                <div class='col-md-auto d-flex justify-content-center'>
+                                    <input type='hidden' value='".$charId."' name='id'>
+                                    <input type='submit' value='Utiliser' class='use-btn round' name='action'/>
+                                </div>
+                            </form>
+                        </div>
                         ";
                     }
+                    echo "</div>";
+
+                } else { // Si il n'y a pas encore d'adversaires
+                    echo "
+                    <div class='text-center error-label py-2 px-5 round'>Aucun adversaire</div>
+                    ";
                 }
+
             }
         }
     } catch (PDOException $e) {
