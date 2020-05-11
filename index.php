@@ -36,7 +36,7 @@
                 session_unset();
                 session_destroy();
             }
-            if (!empty($_SESSION['Character']) || $_POST['action'] == "Utiliser" || $_POST['action'] == "Créer") {
+            if (!empty($_SESSION['Character']) || $_POST['action'] == "Utiliser" || $_POST['action'] == "Creer") {
                 echo "
                 <form action='index.php' method='post'>
                     <input class='navbar-brand sign-out-btn' type='submit' value='Déconnexion' name='action' />
